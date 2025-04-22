@@ -1,0 +1,412 @@
+---
+title: Homework 8 - World Bank Analysis
+---
+
+GITHUB URL:  <https://github.com/cmsc-vcu/cmsc408-sp2025-hw8-rahmana3r>
+
+
+# Problem Background
+
+
+```{python}
+from helpers import create_database_engine, run_sql_and_return_df, run_sql_and_return_html, create_db_wrapper, execute_ddl_from_file, execute_ddl
+
+# Load these variables from .env file.
+config_map = {
+  'user': "CMSC408_HW8_USER",
+  'password': "CMSC408_HW8_PASSWORD",
+  'host': "CMSC408_HW8_HOST",
+  'database': "CMSC408_HW8_DB_NAME"
+}
+
+cnx,config = create_db_wrapper( config_map )
+  
+```
+
+
+```{python}
+run_sql_and_return_html(cnx,"""
+select
+  table_schema, table_name, table_rows
+from
+  information_schema.tables
+where
+  table_schema in ('world_bank_data')
+""")
+
+```
+
+# Exercises
+
+
+## Task 1
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT COUNT(*) AS "Row Count" 
+FROM world_bank_data.wdi_country
+""")
+```
+
+## Task 2
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT * 
+FROM world_bank_data.wdi_country 
+LIMIT 5
+""")
+```
+
+
+## Task 3
+
+List all non-countries.
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT `Short Name`, `Region`, `Income Group`
+FROM world_bank_data.wdi_country
+WHERE `Region` = 'Aggregates'
+   OR `Income Group` = 'Aggregates'
+   OR `Short Name` LIKE '%%World%%';
+""")
+```
+
+## Task 4
+```{python}
+execute_ddl(cnx,"""
+DROP TABLE IF EXISTS wdi_country;
+""")
+```
+
+```{python}
+execute_ddl(cnx,"""
+CREATE TABLE wdi_country AS
+SELECT *
+FROM world_bank_data.wdi_country
+WHERE `Region` != 'Aggregates'
+  AND `Income Group` != 'Aggregates'
+  AND `Short Name` NOT LIKE '%World%';
+""")
+```
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT COUNT(*) AS "Row Count"
+FROM wdi_country;
+""")
+```
+
+## Task 5
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT COUNT(*) AS "Number of Countries" 
+FROM wdi_country
+WHERE `Region` != 'Aggregates';
+""")
+```
+
+## Task 6
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT DISTINCT `Region`
+FROM wdi_country
+WHERE `Region` IS NOT NULL
+ORDER BY `Region`;
+""")
+```
+
+## Task 7
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Region`,
+    COUNT(*) AS "Number of Countries"
+FROM wdi_country
+GROUP BY `Region`
+ORDER BY COUNT(*) DESC;
+""")
+```
+
+## Task 8
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Short Name` AS "Country Name",
+    `Region`
+FROM wdi_country
+WHERE `Region` = 'North America'
+ORDER BY `Short Name`;
+""")
+```
+
+## Task 9
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Region`,
+    `Country Code`,
+    `Short Name` AS "Country Name"
+FROM wdi_country
+WHERE `Country Code` = 'QAT';
+""")
+```
+
+## Task 10
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Country Code`,
+    `Short Name`,
+    `2-alpha code` AS "Abbreviation",
+    `WB-2 code` AS "WB Abbreviation",
+    `Region`
+FROM wdi_country
+WHERE `2-alpha code` != `WB-2 code`
+ORDER BY `Short Name`;
+""")
+```
+
+## Task 11
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Income Group` AS "Income Category",
+    COUNT(*) AS "Number of Countries"
+FROM wdi_country
+GROUP BY `Income Group`
+ORDER BY COUNT(*) DESC;
+""")
+```
+
+## Task 12
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Short Name` AS "Country Name",
+    `Income Group`
+FROM wdi_country
+WHERE `Income Group` IS NULL;
+""")
+```
+
+## Task 13
+
+```{python}
+execute_ddl(cnx,"""
+UPDATE wdi_country
+SET `Income Group` = 'Upper middle income'
+WHERE `Short Name` = 'Venezuela, RB';
+""")
+```
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT `Short Name`, `Income Group` 
+FROM wdi_country 
+WHERE `Short Name` = 'Venezuela, RB';
+""")
+```
+
+## Task 14
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Region`,
+    `Income Group`,
+    COUNT(*) AS "Number of Countries"
+FROM wdi_country
+GROUP BY `Region`, `Income Group`
+ORDER BY `Region`, COUNT(*) DESC;
+""")
+```
+
+## Task 15
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Region`,
+    SUM(CASE WHEN `Income Group` = 'High income' THEN 1 ELSE 0 END) AS "High Income",
+    SUM(CASE WHEN `Income Group` = 'Upper middle income' THEN 1 ELSE 0 END) AS "Upper Middle",
+    SUM(CASE WHEN `Income Group` = 'Lower middle income' THEN 1 ELSE 0 END) AS "Lower Middle",
+    SUM(CASE WHEN `Income Group` = 'Low income' THEN 1 ELSE 0 END) AS "Low Income",
+    COUNT(*) AS "Total"
+FROM wdi_country
+GROUP BY `Region`
+ORDER BY `Region`;
+""")
+```
+
+## Task 16
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    `Region`,
+    COUNT(*) AS "Low Income Countries"
+FROM wdi_country
+WHERE `Income Group` = 'Low income'
+GROUP BY `Region`
+ORDER BY COUNT(*) DESC
+LIMIT 1;
+""")
+
+```
+
+## Task 17
+
+```{python}
+run_sql_and_return_html(cnx,"""
+SELECT 
+    w1.`Country Code`,
+    w1.`Short Name` AS `Country Name`,
+    w1.`Region`,
+    w1.`Income Group`
+FROM wdi_country w1
+JOIN (
+    SELECT `Region`, `Income Group`
+    FROM wdi_country
+    WHERE `Country Code` = 'MHL'
+) w2
+ON w1.`Region` = w2.`Region` 
+AND w1.`Income Group` = w2.`Income Group`
+ORDER BY w1.`Short Name`;
+""")
+```
+
+## Task 18
+
+```{python}
+run_sql_and_return_html(cnx,"""
+WITH all_combinations AS (
+    SELECT DISTINCT r.`Region`, i.`Income Group`
+    FROM (SELECT DISTINCT `Region` FROM wdi_country) r
+    CROSS JOIN (SELECT DISTINCT `Income Group` FROM wdi_country WHERE `Income Group` IS NOT NULL) i
+),
+existing_combinations AS (
+    SELECT `Region`, `Income Group`, COUNT(*) AS count
+    FROM wdi_country
+    WHERE `Income Group` IS NOT NULL
+    GROUP BY `Region`, `Income Group`
+)
+SELECT a.`Region`, a.`Income Group`
+FROM all_combinations a
+LEFT JOIN existing_combinations e ON a.`Region` = e.`Region` AND a.`Income Group` = e.`Income Group`
+WHERE e.`Region` IS NULL
+ORDER BY a.`Region`, a.`Income Group`;
+""")
+```
+
+## Task 19
+
+```{python}
+run_sql_and_return_html(cnx,"""
+WITH counts AS (
+    SELECT 
+        `Region`,
+        `Income Group`,
+        COUNT(*) AS count
+    FROM wdi_country
+    GROUP BY `Region`, `Income Group`
+),
+overall_total AS (
+    SELECT COUNT(*) AS total FROM wdi_country
+)
+SELECT 
+    `Region`,
+    `Income Group`,
+    count AS "Count",
+    (SELECT total FROM overall_total) AS "Total Countries",
+    ROUND(count * 100.0 / (SELECT total FROM overall_total), 2) AS "Percentage"
+FROM counts
+ORDER BY `Region`, `Income Group`;
+""")
+```
+
+## Task 20
+
+```{python}
+run_sql_and_return_html(cnx,"""
+WITH counts AS (
+    SELECT 
+        Region,
+        `Income Group`,
+        COUNT(*) AS count
+    FROM wdi_country
+    GROUP BY Region, `Income Group`
+),
+overall_total AS (
+    SELECT COUNT(*) AS total FROM wdi_country
+)
+SELECT 
+    Region,
+    ROUND(SUM(CASE WHEN `Income Group` = 'High income' THEN count * 100.0 / (SELECT total FROM overall_total) ELSE 0 END), 1) AS 'High Income %',
+    ROUND(SUM(CASE WHEN `Income Group` = 'Upper middle income' THEN count * 100.0 / (SELECT total FROM overall_total) ELSE 0 END), 1) AS 'Upper Middle %',
+    ROUND(SUM(CASE WHEN `Income Group` = 'Lower middle income' THEN count * 100.0 / (SELECT total FROM overall_total) ELSE 0 END), 1) AS 'Lower Middle %',
+    ROUND(SUM(CASE WHEN `Income Group` = 'Low income' THEN count * 100.0 / (SELECT total FROM overall_total) ELSE 0 END), 1) AS 'Low Income %',
+    ROUND(SUM(count) * 100.0 / (SELECT total FROM overall_total), 1) AS 'Total %'
+FROM counts
+GROUP BY Region
+ORDER BY Region;
+""")
+```
+
+## Task 21
+
+```{python}
+run_sql_and_return_html(cnx,"""
+WITH income_counts AS (
+    SELECT 
+        `Income Group`,
+        COUNT(*) AS count
+    FROM wdi_country
+    GROUP BY `Income Group`
+),
+overall_total AS (
+    SELECT COUNT(*) AS total FROM wdi_country
+)
+SELECT 
+    COALESCE(`Income Group`, 'Other') AS "Income Group",
+    count AS "Number of Countries",
+    (SELECT total FROM overall_total) AS "Total Countries",
+    ROUND(count * 100.0 / (SELECT total FROM overall_total), 1) AS "Percentage"
+FROM income_counts
+ORDER BY count DESC;
+""")
+```
+
+
+# Reflection
+This assignment helped reinforce my SQL skills in aggregation, grouping, joins, and complex queries with subqueries and CTEs. I feel most confident with basic SELECT queries and aggregations, but the more advanced tasks with multiple CTEs and complex joins still require more practice.
+
+For the complex tasks (18, 19, 20), I broke them down by:
+First understanding what data I needed
+Identifying the intermediate tables/CTEs required
+Building each component step by step
+Testing each intermediate result
+Combining them together.If I encountered challenges, I would simplify the query or break it into smaller parts. In the future, I would start by sketching out the query structure before coding.
+
+The biggest takeaways were:
+How to structure complex analytical queries
+The power of CTEs for breaking down problems
+Techniques for data pivoting in SQL
+Calculating percentages and ratios
+These skills are directly applicable to real-world data analysis tasks where you need to summarize and analyze large datasets.
+
+
+
+# README
+
+A quality README is an important part of EVERY project. Using the Quarto *include* command we're including a copy of your README in the project report so that a human can evaluate it.
+
+Make sure that you edit the README so that it's explanatory!  Note that you don't need a readme within the *reports* folder for this assignment. We're only
+focused on the root *README.md*.
+
+[Here is some info](https://www.freecodecamp.org/news/how-to-write-a-good-readme-file/) on how to write a good README!
+
+::: {style="background:lightgray; margin-left:20px; border-top: 3px solid black; border-bottom: 3px solid black; padding-left:20px; padding-right:20px"}
+{{< include ../README.md >}}
+:::
