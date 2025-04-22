@@ -634,13 +634,13 @@ order by
 
 run_sql_and_return_html(cnx,"""
 SELECT
-  COALESCE(`Income Group`, 'Other') AS income_group,
-  COUNT(*)                         AS country_count,
-  (SELECT COUNT(*) FROM sp25_rahmana17_user)  AS total_countries,
+  COALESCE(`Income Group`, 'High income') AS income_group,
+  COUNT(*) AS country_count,
+  (SELECT COUNT(*) FROM sp25_rahmana17_user) AS total_countries,
   ROUND(
-    COUNT(*) 
-    / (SELECT COUNT(*) FROM sp25_rahmana17_user) * 100
-  , 1)                              AS percent_of_total
+    COUNT(*) / (SELECT COUNT(*) FROM sp25_rahmana17_user) * 100,
+    1
+  ) AS percent_of_total
 FROM
   sp25_rahmana17_user
 GROUP BY
